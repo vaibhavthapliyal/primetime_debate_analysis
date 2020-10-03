@@ -17,7 +17,10 @@ public class DataExtractorServiceImpl implements IDataExtractorService{
 	private GenericDataExtractorImpl republicDataExtractor;
 	
 	@Value("${republic.playlist.id}")
-	private String playlistId;
+	private String republicPlaylistId;
+	
+	@Value("${republic.channel.title}")
+	private String republicChannelTitle;
 	
 	@Value("${request.max.results}")
 	private Long maxResults;
@@ -37,6 +40,7 @@ public class DataExtractorServiceImpl implements IDataExtractorService{
 	@Override
 	public void configure() {
 		republicDataExtractor.setMaxResults(maxResults);
-		republicDataExtractor.setPlayListId(playlistId);
+		republicDataExtractor.setPlayListId(republicPlaylistId);
+		republicDataExtractor.setChannelTitle(republicChannelTitle);
 	}
 }

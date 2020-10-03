@@ -6,8 +6,13 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +27,7 @@ import com.google.api.services.youtube.model.PlaylistItemListResponse;
 import com.primetime.debate.analysis.entity.DebateMetadata;
 import com.primetime.debate.analysis.extractor.GenericDataExtractor;
 import com.primetime.debate.analysis.mapper.DataMapper;
+import com.primetime.debate.analysis.util.DateUtil;
 
 @Service
 @Scope("prototype")
@@ -39,6 +45,8 @@ public class GenericDataExtractorImpl implements GenericDataExtractor{
 	
 	private String nextPageToken;
 	
+	private String channelTitle;
+	
 	private ObjectMapper mapper = new ObjectMapper();
 	
 	@Value("${elasticsearch.index.name}")
@@ -53,22 +61,51 @@ public class GenericDataExtractorImpl implements GenericDataExtractor{
 		try {
 			YouTube.PlaylistItems.List request;
 			PlaylistItemListResponse response;
+			boolean continueFlag = true;
+
+			SearchRequest searchRequest = new SearchRequest(indexName);
+
+			SearchSourceBuilder builder = new SearchSourceBuilder();
+
+			builder.query(QueryBuilders.termQuery("channelTitle", channelTitle)).sort("publishedAt", SortOrder.DESC)
+					.size(1);
+
+			searchRequest.source(builder);
+
+			SearchHit[] searchHits = client.search(searchRequest, RequestOptions.DEFAULT).getHits().getHits();
+			
+			DebateMetadata latestMetadata = new DebateMetadata();
+			
+			if(searchHits.length != 0) {
+				latestMetadata = mapper.convertValue(searchHits[0].getSourceAsMap(), DebateMetadata.class);
+			}
+			
 			do {
+				log.info("Sending request to youtube for channelID: " + channelTitle + " and token: " + nextPageToken);
 				request = youtubeService.playlistItems().list("snippet,contentDetails").setMaxResults(maxResults)
 						.setPlaylistId(playListId).setPageToken(nextPageToken);
 				response = request.execute();
-				
-				for(PlaylistItem item :response.getItems()) {
+
+				for (PlaylistItem item : response.getItems()) {
+
+					if (searchHits.length > 0 && DateUtil.convertStringToDate(item.getSnippet().getPublishedAt().toString())
+							.getTime() <= DateUtil.convertStringToDate(latestMetadata.getPublishedAt()).getTime()) {
+						log.info("Breaking the loop since data is already latest for channel: " + channelTitle);
+						continueFlag = false;
+						break;
+					}
 					DebateMetadata metadata = DataMapper.getDebateMetadataFromYoutubePlaylistItem(item);
 					save(metadata);
 				}
 				nextPageToken = response.getNextPageToken();
-			} while (response.getNextPageToken() != null);
+			} while (response.getNextPageToken() != null && continueFlag);
 		} catch (IOException e) {
 			log.error("Error Occured in extracting Data for Playlist ID: " + playListId, e);
 		}
-		
+
 		close();
+		
+		log.info("Data Extraction for: " + channelTitle + " finished");
 	}
 
 	@Override
@@ -115,6 +152,14 @@ public class GenericDataExtractorImpl implements GenericDataExtractor{
 
 	public void setMaxResults(Long maxResults) {
 		this.maxResults = maxResults;
+	}
+
+	public String getChannelTitle() {
+		return channelTitle;
+	}
+
+	public void setChannelTitle(String channelTitle) {
+		this.channelTitle = channelTitle;
 	}
 	
 }

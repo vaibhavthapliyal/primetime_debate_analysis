@@ -20,9 +20,13 @@ public class DataMapper {
 
 		metadata.setPublishedAt(item.getSnippet().getPublishedAt().toString());
 
-		metadata.setThumbnailUrlHighRes(item.getSnippet().getThumbnails().getMaxres().getUrl());
+		if(item.getSnippet().getThumbnails().getHigh() != null) {
+			metadata.setThumbnailUrlHighRes(item.getSnippet().getThumbnails().getHigh().getUrl());
+		}
 
-		metadata.setThumbnailUrlStandard(item.getSnippet().getThumbnails().getStandard().getUrl());
+		if(item.getSnippet().getThumbnails().getStandard() != null) {
+			metadata.setThumbnailUrlStandard(item.getSnippet().getThumbnails().getStandard().getUrl());
+		}
 
 		metadata.setTitle(item.getSnippet().getTitle());
 
