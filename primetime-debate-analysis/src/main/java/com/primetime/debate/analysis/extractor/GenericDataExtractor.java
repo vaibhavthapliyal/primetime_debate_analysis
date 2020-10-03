@@ -12,4 +12,7 @@ public interface GenericDataExtractor extends Runnable {
 		throw new RuntimeException("Not Implemented yet");
 	}
 
+	default public void close() {
+		throw new RuntimeException("Not Implemented yet");
+	}
 }
