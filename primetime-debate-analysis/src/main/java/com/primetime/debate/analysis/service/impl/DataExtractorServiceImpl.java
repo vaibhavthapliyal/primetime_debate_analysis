@@ -39,5 +39,4 @@ public class DataExtractorServiceImpl implements IDataExtractorService{
 		republicDataExtractor.setMaxResults(maxResults);
 		republicDataExtractor.setPlayListId(playlistId);
 	}
-
 }
