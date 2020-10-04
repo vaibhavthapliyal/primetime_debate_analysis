@@ -33,7 +33,7 @@ public class ElasticsearchConfig {
 			log.error("Error initialising Youtube Service", e);
 		}
 
-		log.info("Youtube Service Initialised successfully");
+		log.info("Elasticsearch Service Initialised successfully");
 		return elasticSearchClient;
 	}
 }
