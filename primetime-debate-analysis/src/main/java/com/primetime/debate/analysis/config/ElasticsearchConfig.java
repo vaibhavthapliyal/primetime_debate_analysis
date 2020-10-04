@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-@Scope("prototype")
 public class ElasticsearchConfig {
 
 	private Logger log = LogManager.getLogger(ElasticsearchConfig.class);
@@ -23,6 +22,7 @@ public class ElasticsearchConfig {
 	private int port;
 	
 	@Bean("elasticClient")
+	@Scope("prototype")
 	public RestHighLevelClient getElasticSearchHighLevelRestClient() {
 
 		RestHighLevelClient elasticSearchClient = null;
